@@ -1,0 +1,11 @@
+[mysqld@instance_id]
+# Use: systemctl start mariadb-@app_name.service
+# this will start the database for @app_name
+socket         = @db_home/@app_name/mysql.sock
+port           = @port
+pid-file       = /var/run/mariadb/mariadb-@app_name.pid
+datadir        = @db_home/@app_name
+log-error      = /var/log/mariadb/mariadb-@app_name.log
+user           = mysql
+symbolic-links = 0
+

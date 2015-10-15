@@ -1,0 +1,5 @@
+---
+app_name: "TESTDB"
+db_home: /tmp
+my_cnf_d: /etc/my.cnf.d
+mariadb_home: /etc/systemd/system/mariadb

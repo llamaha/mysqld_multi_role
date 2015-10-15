@@ -1,0 +1,20 @@
+# For an understanding of how this service works please check documentation
+# for mysql_multi
+
+[Unit]
+Description=MySQL Multi Server for instance @app_name
+After=syslog.target
+After=network.target
+
+[Service]
+Type=forking
+
+ExecStart=/bin/mysqld_multi start @instance_id
+ExecStop=/bin/mysqld_multi stop @instance_id
+Restart=always
+PrivateTmp=true
+
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target

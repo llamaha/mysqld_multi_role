@@ -1,0 +1,59 @@
+---
+
+- name: "Create empty MariaDB datadir under {{ db_home }}/{{ app_name }}"
+  file: 
+    path: "{{ db_home }}/{{ app_name }}" 
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0755
+
+- name: Install database to datadir
+  shell: "mysql_install_db --user=mysql --basedir=/usr --datadir={{ db_home}}/{{ app_name }}"
+
+- name: Define mariadb service and mysqld configurations from files
+  set_fact:
+    mariadb_service: "{{ lookup('file', 'mariadb_service') }}"
+    mysqld_multi: "{{ lookup('file', 'mysql_multi.cnf') }}"
+
+- name: Get location of last instance (count mysqld and add 1)
+  shell: "expr $(egrep mysqld[[:digit:]]+ /etc/my.cnf.d/* | wc -l) + 1"
+  register: instance_id
+
+- name: Calculate port from instance_id
+  set_fact:
+    port_no: "{{ instance_id.stdout|int + 6000 }}"
+
+- stat: 
+    path: "{{ my_cnf_d }}/{{ app_name }}.cnf"
+  register: app_cnf
+
+- name: Add config to my.cnf.d folder
+  lineinfile: 
+    create: yes
+    dest: "{{ my_cnf_d }}/{{ app_name }}.cnf"
+    line: "{{ mysqld_multi |replace('@instance_id', instance_id.stdout) \
+                             |replace('@app_name', app_name) \
+                             |replace('@port', port_no) \
+                             |replace('@db_home', db_home) }}"
+  when: app_cnf.stat.exists == False
+    
+- stat:
+    path: "{{ mariadb_home }}-{{ app_name }}.service"
+  register: app_service
+
+- name: Put service init config into /etc/systemd/system/
+  lineinfile:
+    create: yes
+    dest: "{{ mariadb_home }}-{{ app_name }}.service"
+    line: "{{ mariadb_service |replace('@instance_id', instance_id.stdout) \
+                                |replace('@app_name', app_name) }}"
+  when: app_service.stat.exists == False
+
+- name: reload systemd
+  command: systemctl daemon-reload
+
+- name: Start service
+  service:
+    name: "mariadb-{{ app_name }}.service"
+    state: started
